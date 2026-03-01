@@ -5,14 +5,16 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from difflib import get_close_matches
 from pathlib import Path
 from typing import Any
 
 import google.generativeai as genai
+import pandas as pd
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-# ESCO index is loaded lazily in process_cv; no global build_index() call at import time.
+_ESCO_LOOKUP_CACHE: dict[str, list[str]] | None = None
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,6 +50,50 @@ def _extract_json_array(raw_text: str) -> list[dict[str, Any]]:
     if not isinstance(data, list):
         raise ValueError("Gemini response is not a JSON array.")
     return [item for item in data if isinstance(item, dict)]
+
+
+def _estimate_chunk_count(text: str) -> int:
+    """Estimate chunk-like phrase count without loading heavy NLP models."""
+    if not text or not text.strip():
+        return 0
+
+    parts = re.split(r"[\n,;|]", text)
+    seen: set[str] = set()
+    for part in parts:
+        normalized = " ".join(part.lower().split()).strip()
+        if not normalized:
+            continue
+        wc = len(normalized.split())
+        if 2 <= wc <= 6:
+            seen.add(normalized)
+    return len(seen)
+
+
+def _load_esco_lookup() -> dict[str, list[str]]:
+    """Load only ESCO labels/URIs needed for difflib mapping and cache in memory."""
+    global _ESCO_LOOKUP_CACHE
+    if _ESCO_LOOKUP_CACHE is not None:
+        return _ESCO_LOOKUP_CACHE
+
+    occupations_df = pd.read_csv(
+        "data/occupations_en.csv",
+        dtype=str,
+        usecols=["conceptUri", "preferredLabel", "iscoGroup"],
+    ).fillna("")
+    skills_df = pd.read_csv(
+        "data/skills_en.csv",
+        dtype=str,
+        usecols=["conceptUri", "preferredLabel"],
+    ).fillna("")
+
+    _ESCO_LOOKUP_CACHE = {
+        "occupation_uris": occupations_df["conceptUri"].astype(str).tolist(),
+        "occupation_labels": occupations_df["preferredLabel"].astype(str).tolist(),
+        "occupation_isco": occupations_df["iscoGroup"].astype(str).tolist(),
+        "skill_uris": skills_df["conceptUri"].astype(str).tolist(),
+        "skill_labels": skills_df["preferredLabel"].astype(str).tolist(),
+    }
+    return _ESCO_LOOKUP_CACHE
 
 
 def match_occupations_with_gemini(text: str, top_k: int = 10) -> list[dict[str, Any]]:
@@ -196,8 +242,8 @@ def process_cv(file_path: str, top_k: int = 10) -> dict[str, Any]:
 
     Pipeline steps:
     1) extract_text
-    2) extract_chunks
-    3) build_index
+    2) estimate chunk count (lightweight)
+    3) load ESCO lookup labels/URIs
     4) match_occupations_with_gemini
     5) match_skills_with_gemini
     6) map Gemini occupation labels to ESCO URI/ISCO via difflib
@@ -210,13 +256,11 @@ def process_cv(file_path: str, top_k: int = 10) -> dict[str, Any]:
     Returns:
         Result dictionary with matches and summary stats.
     """
-    from chunk_extractor import extract_chunks
     from cv_reader import extract_text
-    from esco_index import build_index
 
     text = extract_text(file_path)
-    chunks = extract_chunks(text)
-    index = build_index()
+    chunk_count = _estimate_chunk_count(text)
+    index = _load_esco_lookup()
 
     occupations = match_occupations_with_gemini(text, top_k=top_k)
     skills = match_skills_with_gemini(text, top_k=top_k)
@@ -238,7 +282,7 @@ def process_cv(file_path: str, top_k: int = 10) -> dict[str, Any]:
 
     return {
         "file": Path(file_path).name,
-        "chunk_count": len(chunks),
+        "chunk_count": chunk_count,
         "occupations": occupations,
         "skills": skills,
         "stats": {

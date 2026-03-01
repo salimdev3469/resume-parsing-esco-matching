@@ -10,7 +10,7 @@ from typing import Any
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="CV ESCO Matcher API")
+app = FastAPI(title="CV ESCO Matcher API", docs_url=None, redoc_url=None, openapi_url=None)
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +24,12 @@ app.add_middleware(
 @app.get("/health")
 async def health() -> dict[str, str]:
     """Health-check endpoint."""
+    return {"status": "ok"}
+
+
+@app.get("/")
+async def root() -> dict[str, str]:
+    """Root endpoint for plain domain access."""
     return {"status": "ok"}
 
 
@@ -48,6 +54,7 @@ async def match_cv(
             temp_path = tmp_file.name
 
         from pipeline import process_cv
+
         return process_cv(temp_path, top_k=top_k)
 
     except HTTPException:
@@ -67,10 +74,8 @@ async def match_cv(
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
 
-
-import os
-
 if __name__ == "__main__":
     import uvicorn
+
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("api:app", host="0.0.0.0", port=port)
