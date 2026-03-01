@@ -16,6 +16,7 @@ from cv_reader import extract_text
 from esco_index import build_index
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# ESCO index is loaded lazily in process_cv; no global build_index() call at import time.
 
 _LOGGER = logging.getLogger(__name__)
 
