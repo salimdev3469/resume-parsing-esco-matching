@@ -110,7 +110,7 @@ def match_occupations_with_gemini(text: str, top_k: int = 10) -> list[dict[str, 
         return []
 
     genai.configure(api_key=_get_gemini_api_key())
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     system_prompt = (
         "You are an expert in the ESCO v1.1 European Skills, Competences, Qualifications and "
@@ -182,7 +182,7 @@ def match_skills_with_gemini(text: str, top_k: int = 15) -> list[dict[str, Any]]
         return []
 
     genai.configure(api_key=_get_gemini_api_key())
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     system_prompt = (
         "You are an expert in the ESCO v1.1 European Skills, Competences, Qualifications and "
