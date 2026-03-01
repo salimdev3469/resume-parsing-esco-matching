@@ -10,7 +10,7 @@ from typing import Any
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="CV ESCO Matcher API", docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title="CV ESCO Matcher API", docs_url="/", redoc_url=None, openapi_url="/openapi.json")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,12 +24,6 @@ app.add_middleware(
 @app.get("/health")
 async def health() -> dict[str, str]:
     """Health-check endpoint."""
-    return {"status": "ok"}
-
-
-@app.get("/")
-async def root() -> dict[str, str]:
-    """Root endpoint for plain domain access."""
     return {"status": "ok"}
 
 
