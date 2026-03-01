@@ -1,0 +1,8 @@
+pdfplumber
+python-docx
+sentence-transformers
+spacy
+pandas
+torch
+scikit-learn
+google-generativeai

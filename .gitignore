@@ -1,0 +1,17 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Local/generated outputs
+result.json
+data/esco_embeddings.pkl
+
+# Local sample CV files
+sample*.pdf
