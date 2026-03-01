@@ -6,3 +6,6 @@ pandas
 torch
 scikit-learn
 google-generativeai
+uvicorn
+fastapi
+python-multipart
