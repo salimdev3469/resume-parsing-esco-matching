@@ -11,10 +11,6 @@ from typing import Any
 
 import google.generativeai as genai
 
-from chunk_extractor import extract_chunks
-from cv_reader import extract_text
-from esco_index import build_index
-
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 # ESCO index is loaded lazily in process_cv; no global build_index() call at import time.
 
@@ -214,6 +210,10 @@ def process_cv(file_path: str, top_k: int = 10) -> dict[str, Any]:
     Returns:
         Result dictionary with matches and summary stats.
     """
+    from chunk_extractor import extract_chunks
+    from cv_reader import extract_text
+    from esco_index import build_index
+
     text = extract_text(file_path)
     chunks = extract_chunks(text)
     index = build_index()

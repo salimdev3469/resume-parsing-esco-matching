@@ -10,8 +10,6 @@ from typing import Any
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from pipeline import process_cv
-
 app = FastAPI(title="CV ESCO Matcher API")
 
 app.add_middleware(
@@ -49,6 +47,7 @@ async def match_cv(
             tmp_file.write(content)
             temp_path = tmp_file.name
 
+        from pipeline import process_cv
         return process_cv(temp_path, top_k=top_k)
 
     except HTTPException:
