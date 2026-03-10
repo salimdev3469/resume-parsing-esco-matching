@@ -10,9 +10,12 @@ from difflib import get_close_matches
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
+
 import google.generativeai as genai
 import pandas as pd
 
+load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 _ESCO_LOOKUP_CACHE: dict[str, list[str]] | None = None
 
@@ -50,6 +53,32 @@ def _extract_json_array(raw_text: str) -> list[dict[str, Any]]:
     if not isinstance(data, list):
         raise ValueError("Gemini response is not a JSON array.")
     return [item for item in data if isinstance(item, dict)]
+
+
+def _extract_json_object(raw_text: str) -> dict[str, Any]:
+    """Parse Gemini output into a JSON object dictionary."""
+    text = (raw_text or "").strip()
+    if not text:
+        return {}
+
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.lower().startswith("json"):
+            text = text[4:].strip()
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end >= start:
+        text = text[start : end + 1]
+
+    try:
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            raise ValueError("Gemini response is not a JSON object.")
+        return data
+    except Exception as exc:
+        _LOGGER.exception("Failed to parse JSON object: %s", exc)
+        return {}
 
 
 def _estimate_chunk_count(text: str) -> int:
@@ -237,6 +266,47 @@ def match_skills_with_gemini(text: str, top_k: int = 15) -> list[dict[str, Any]]
     return results[: max(1, int(top_k))]
 
 
+def extract_cv_details_with_gemini(text: str) -> dict[str, Any]:
+    """Extract personal info, education, experience, projects, languages from full CV text.
+
+    Args:
+        text: Raw CV text.
+
+    Returns:
+        Structured dictionary with the extracted fields.
+    """
+    if not text or not text.strip():
+        return {}
+
+    genai.configure(api_key=_get_gemini_api_key())
+    model = genai.GenerativeModel("gemini-2.5-flash")
+
+    system_prompt = (
+        "You are an expert CV parser.\n"
+        "Given a CV text, extract the person's detailed information.\n"
+        "Return ONLY a valid JSON object, no explanation, no markdown, no code blocks.\n"
+        "Ensure the JSON matches this structure exactly:\n"
+        "{\n"
+        '  "personal_info": {"name": "", "email": "", "phone": "", "location": "", "linkedin": "", "github": "", "portfolio": ""},\n'
+        '  "education": [{"degree": "", "institution": "", "start_date": "", "end_date": "", "description": ""}],\n'
+        '  "experience": [{"role": "", "company": "", "start_date": "", "end_date": "", "description": ""}],\n'
+        '  "projects": [{"name": "", "description": "", "link": ""}],\n'
+        '  "languages": [{"language": "", "proficiency": ""}]\n'
+        "}\n"
+        "If some information is missing, leave the string empty or the array empty."
+    )
+
+    try:
+        response = model.generate_content([
+            {"role": "user", "parts": [system_prompt]},
+            {"role": "user", "parts": [text]},
+        ])
+        return _extract_json_object(response.text or "")
+    except Exception as exc:
+        _LOGGER.exception("Gemini CV details extraction failed: %s", exc)
+        return {}
+
+
 def process_cv(file_path: str, top_k: int = 10) -> dict[str, Any]:
     """Process a CV file and return ESCO occupation/skill matches.
 
@@ -264,6 +334,7 @@ def process_cv(file_path: str, top_k: int = 10) -> dict[str, Any]:
 
     occupations = match_occupations_with_gemini(text, top_k=top_k)
     skills = match_skills_with_gemini(text, top_k=top_k)
+    cv_details = extract_cv_details_with_gemini(text)
 
     for occupation in occupations:
         gemini_label = occupation.get("label", "")
@@ -282,6 +353,11 @@ def process_cv(file_path: str, top_k: int = 10) -> dict[str, Any]:
 
     return {
         "file": Path(file_path).name,
+        "personal_info": cv_details.get("personal_info", {}),
+        "education": cv_details.get("education", []),
+        "experience": cv_details.get("experience", []),
+        "projects": cv_details.get("projects", []),
+        "languages": cv_details.get("languages", []),
         "chunk_count": chunk_count,
         "occupations": occupations,
         "skills": skills,

@@ -9,3 +9,4 @@ google-generativeai
 uvicorn
 fastapi
 python-multipart
+python-dotenv

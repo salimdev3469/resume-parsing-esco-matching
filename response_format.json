@@ -1,0 +1,67 @@
+{
+    "file": "example_cv_document.pdf",
+    "personal_info": {
+        "name": "John Doe",
+        "email": "johndoe@example.com",
+        "phone": "+1 555-000-1122",
+        "location": "New York, NY",
+        "linkedin": "linkedin.com/in/johndoe",
+        "github": "github.com/johndoe",
+        "portfolio": "johndoe.dev"
+    },
+    "education": [
+        {
+            "degree": "Bachelor of Science, Computer Engineering",
+            "institution": "Example University",
+            "start_date": "09/2018",
+            "end_date": "06/2022",
+            "description": "Graduated with honors. Key coursework included Data Structures and Algorithms."
+        }
+    ],
+    "experience": [
+        {
+            "role": "Software Engineer",
+            "company": "Tech Innovations Inc.",
+            "start_date": "07/2022",
+            "end_date": "Present",
+            "description": "Developed RESTful APIs, optimized database queries, and collaborated with frontend teams using Agile methodologies."
+        }
+    ],
+    "projects": [
+        {
+            "name": "E-Commerce System",
+            "description": "Designed and implemented a scalable microservices architecture for an online retail platform.",
+            "link": "https://github.com/johndoe/ecommerce-project"
+        }
+    ],
+    "languages": [
+        {
+            "language": "Spanish",
+            "proficiency": "Fluent (C1)"
+        }
+    ],
+    "chunk_count": 25,
+    "occupations": [
+        {
+            "uri": "http://data.europa.eu/esco/occupation/sample-uuid-1234",
+            "label": "software developer",
+            "isco_group": "2512",
+            "score": 0.98,
+            "match_count": 1,
+            "reasoning": "Strong evidence in the CV of developing applications, writing code, and system design."
+        }
+    ],
+    "skills": [
+        {
+            "uri": "http://data.europa.eu/esco/skill/sample-uuid-5678",
+            "label": "Develop software using Python",
+            "score": 0.95,
+            "match_count": 1,
+            "reasoning": "Explicitly mentioned using Python for backend development in previous roles."
+        }
+    ],
+    "stats": {
+        "occupation_count": 1,
+        "skill_count": 1
+    }
+}
